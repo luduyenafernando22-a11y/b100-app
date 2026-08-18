@@ -1,0 +1,19 @@
+{
+  "name": "B-100 — Pequenos luxos, bem escolhidos.",
+  "short_name": "B-100",
+  "description": "Curadoria de produtos de beleza de alta qualidade até R$ 100 no Brasil.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f2ea",
+  "theme_color": "#d4af37",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/manus-storage/b100-crown-mark_237f8f20.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,25 +1,53 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+// B-100 · Editorial Quiet Luxury: vitrine assimétrica, curadoria antes do catálogo.
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, ChevronRight, Crown, Filter, Menu, Search, Sparkles, X } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import type { Product } from '../types/product';
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const categories = ['Todos', 'Skincare', 'Cabelo', 'Maquiagem', 'Unhas', 'Ferramentas'];
+const priceFilters = [{ label: 'Até R$ 20', max: 20 }, { label: 'Até R$ 50', max: 50 }, { label: 'Até R$ 75', max: 75 }, { label: 'Até R$ 100', max: 100 }];
+const editorialImages = ['/manus-storage/b100-skincare_ac4ca460.jpg', '/manus-storage/b100-hair-makeup_f0d7ff76.jpg', '/manus-storage/b100-tools_774685f6.jpg'];
+
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const { cat } = useParams<{ cat?: string }>();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [category, setCategory] = useState(cat ? decodeURIComponent(cat) : 'Todos');
+  const [maxPrice, setMaxPrice] = useState(100);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  useEffect(() => { setCategory(cat ? decodeURIComponent(cat) : 'Todos'); }, [cat]);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      if (!supabase) { setProducts([]); setLoading(false); return; }
+      const { data } = await supabase.from('products').select('*').eq('status', 'published').lte('price', 100).order('created_at', { ascending: false });
+      if (active) { setProducts((data ?? []) as Product[]); setLoading(false); }
+    }
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const filteredProducts = useMemo(() => products.filter((product) => {
+    const matchesCategory = category === 'Todos' || product.category?.toLowerCase() === category.toLowerCase();
+    const matchesPrice = Number(product.price) <= maxPrice;
+    const matchesSearch = !search || `${product.title ?? product.name ?? ''} ${product.brand ?? ''}`.toLowerCase().includes(search.toLowerCase());
+    return matchesCategory && matchesPrice && matchesSearch;
+  }), [products, category, maxPrice, search]);
+
+  const chapterLabel = category === 'Todos' ? 'A seleção atual' : `Capítulo ${category}`;
+  const chapterNote = category === 'Todos' ? 'Escolhidos para si.' : category === 'Skincare' ? 'Ritual para a pele.' : category === 'Cabelo' ? 'Texturas, forma e cuidado.' : category === 'Maquiagem' ? 'Cor com intenção.' : category === 'Unhas' ? 'Detalhes que completam.' : category === 'Ferramentas' ? 'Pequenos instrumentos, grande diferença.' : 'Uma seleção com critério.';
+
+  return <div className="min-h-screen bg-[#f7f2ea] text-[#2b211d]"><header className="absolute inset-x-0 top-0 z-20 px-5 py-5 sm:px-10"><div className="mx-auto flex max-w-7xl items-center justify-between"><Link to="/" className="flex items-center gap-3" aria-label="B-100 início"><span className="grid h-10 w-10 place-items-center rounded-[1.15rem] border border-[#d4af37] bg-[#2b211d] text-[#d4af37] shadow-lg shadow-black/10"><Crown size={20} strokeWidth={1.35} /></span><span className="font-sans text-sm font-bold tracking-[0.18em] text-[#f7f2ea]">B-100</span></Link><nav className="hidden items-center gap-8 font-sans text-[0.68rem] font-bold uppercase tracking-[0.2em] text-[#f7f2ea]/80 md:flex"><a href="#selecao" className="transition hover:text-[#d4af37]">A seleção</a><a href="#criterio" className="transition hover:text-[#d4af37]">O critério</a><Link to="/admin/login" className="border-l border-[#f7f2ea]/25 pl-8 transition hover:text-[#d4af37]">Admin</Link></nav><button onClick={() => setMenuOpen(!menuOpen)} className="grid h-10 w-10 place-items-center rounded-full border border-[#f7f2ea]/25 text-[#f7f2ea] md:hidden" aria-label="Abrir menu">{menuOpen ? <X size={18} /> : <Menu size={18} />}</button></div>{menuOpen && <div className="mt-4 border border-[#f7f2ea]/20 bg-[#2b211d]/95 p-5 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[#f7f2ea] md:hidden"><a href="#selecao" className="block py-3">A seleção</a><a href="#criterio" className="block py-3">O critério</a><Link to="/admin/login" className="block border-t border-[#f7f2ea]/15 pt-4">Admin</Link></div>}</header>
+    <section className="relative isolate min-h-[690px] overflow-hidden bg-[#2b211d]"><img src="/manus-storage/b100-editorial-hero_ee4dffb4.jpg" alt="Seleção editorial de produtos de beleza" className="absolute inset-0 h-full w-full object-cover opacity-80" /><div className="absolute inset-0 bg-gradient-to-r from-[#2b211d]/90 via-[#2b211d]/58 to-[#2b211d]/10" /><div className="relative mx-auto flex min-h-[690px] max-w-7xl items-end px-6 pb-20 sm:px-10 sm:pb-28"><div className="max-w-2xl text-[#f7f2ea]"><p className="mb-6 flex items-center gap-3 font-sans text-[0.68rem] font-bold uppercase tracking-[0.3em] text-[#ecd788]"><Sparkles size={14} /> Curadoria brasileira / edição 01</p><h1 className="font-serif text-6xl leading-[0.88] tracking-[-0.04em] sm:text-8xl">Pequenos luxos,<br /><em className="text-[#ecd788]">bem escolhidos.</em></h1><p className="mt-8 max-w-lg font-sans text-base leading-7 text-[#f7f2ea]/72 sm:text-lg">Uma seleção de beleza com critério, para encontrar produtos que parecem mais caros do que são — sempre até R$ 100.</p><a href="#selecao" className="mt-9 inline-flex items-center gap-3 bg-[#d4af37] px-6 py-4 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[#2b211d] transition hover:bg-[#ecd788]">Ver a seleção <ArrowUpRight size={16} /></a></div></div><div className="absolute bottom-7 right-7 hidden items-center gap-3 font-sans text-[0.62rem] font-bold uppercase tracking-[0.2em] text-[#f7f2ea]/60 lg:flex"><span className="h-px w-14 bg-[#f7f2ea]/35" /> O próximo favorito começa aqui</div></section>
+    <section id="criterio" className="border-b border-[#2b211d]/10 bg-[#f1e6cf] px-6 py-14 sm:px-10"><div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.72fr_1.28fr] md:items-end"><p className="font-serif text-3xl leading-tight sm:text-4xl">Comprar melhor também pode ser uma forma de cuidado.</p><div className="grid gap-8 sm:grid-cols-3"><Criterion number="01" title="Preço real" body="Tudo o que entra respeita o teto de R$ 100 em reais." /><Criterion number="02" title="Olhar atento" body="Escolhemos pela combinação de utilidade, detalhe e desejo." /><Criterion number="03" title="Sem ruído" body="Menos promessa vazia. Mais contexto para decidir." /></div></div></section>
+    <section id="selecao" className="px-6 py-16 sm:px-10 sm:py-24"><div className="mx-auto max-w-7xl"><div className="flex flex-wrap items-end justify-between gap-6"><div><div className="flex items-center gap-3"><span className="font-sans text-[0.62rem] font-bold uppercase tracking-[0.22em] text-[#8f7a38]">Edição 01</span><span className="h-px w-10 bg-[#d4af37]" /></div><p className="mt-5 font-sans text-[0.68rem] font-bold uppercase tracking-[0.26em] text-[#8f7a38]">{chapterLabel}</p><h2 className="mt-3 max-w-2xl font-serif text-5xl leading-none sm:text-6xl">{chapterNote}</h2></div><div className="relative w-full max-w-xs"><Search className="absolute left-0 top-1/2 -translate-y-1/2 text-[#8f7a38]" size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Procurar por nome ou marca" className="w-full border-b border-[#2b211d]/25 bg-transparent py-3 pl-7 font-sans text-sm outline-none placeholder:text-[#77675d]/65 focus:border-[#d4af37]" /></div></div><div className="mt-12 flex gap-2 overflow-x-auto border-b border-[#2b211d]/10 pb-0">{categories.map((item) => <Link key={item} to={item === 'Todos' ? '/' : `/categoria/${encodeURIComponent(item)}`} onClick={() => setCategory(item)} className={`shrink-0 border-b-2 px-1 pb-4 font-sans text-xs font-bold uppercase tracking-[0.16em] transition ${category === item ? 'border-[#d4af37] text-[#2b211d]' : 'border-transparent text-[#77675d] hover:text-[#2b211d]'}`}>{item}</Link>)}</div><div className="mt-6 flex flex-wrap items-center gap-2"><Filter size={15} className="mr-2 text-[#8f7a38]" />{priceFilters.map((filter) => <button key={filter.max} onClick={() => setMaxPrice(filter.max)} className={`border px-3 py-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.12em] transition ${maxPrice === filter.max ? 'border-[#2b211d] bg-[#2b211d] text-[#f7f2ea]' : 'border-[#2b211d]/15 text-[#77675d] hover:border-[#2b211d]/50'}`}>{filter.label}</button>)}</div>{loading ? <div className="grid gap-5 pt-12 sm:grid-cols-2 lg:grid-cols-4"><div className="h-96 animate-pulse bg-[#efe7dc]" /><div className="h-96 animate-pulse bg-[#efe7dc]" /><div className="h-96 animate-pulse bg-[#efe7dc]" /><div className="h-96 animate-pulse bg-[#efe7dc]" /></div> : filteredProducts.length ? <div className="grid gap-x-5 gap-y-12 pt-12 sm:grid-cols-2 lg:grid-cols-4">{filteredProducts.map((product, index) => <ProductCard key={product.id} product={product} imageFallback={editorialImages[index % editorialImages.length]} />)}</div> : <EmptyCatalog />}</div></section>
+    <footer className="border-t border-[#2b211d]/10 bg-[#2b211d] px-6 py-12 text-[#f7f2ea] sm:px-10"><div className="mx-auto flex max-w-7xl flex-wrap items-start justify-between gap-8"><div><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl border border-[#d4af37] text-[#d4af37]"><Crown size={17} /></span><span className="font-sans text-sm font-bold tracking-[0.18em]">B-100</span></div><p className="mt-5 max-w-xs font-serif text-2xl leading-tight text-[#ecd788]">Escolher menos.<br />Escolher melhor.</p></div><p className="max-w-xs font-sans text-xs leading-6 text-[#f7f2ea]/55">Alguns links podem ser de afiliado. O preço mostrado corresponde ao momento da curadoria e pode mudar no parceiro.</p></div></footer>
+  </div>;
 }
+
+function Criterion({ number, title, body }: { number: string; title: string; body: string }) { return <div><p className="font-sans text-[0.65rem] font-bold tracking-[0.2em] text-[#8f7a38]">{number}</p><h3 className="mt-3 font-serif text-2xl">{title}</h3><p className="mt-2 font-sans text-sm leading-6 text-[#77675d]">{body}</p></div>; }
+function ProductCard({ product, imageFallback }: { product: Product; imageFallback: string }) { const title = product.title || product.name || 'Produto selecionado'; const image = product.image_url || imageFallback; return <article className="group"><div className="relative aspect-[4/5] overflow-hidden bg-[#eee4d6]"><img src={image} alt={title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" onError={(event) => { event.currentTarget.src = imageFallback; }} /><div className="absolute left-4 top-4 bg-[#f7f2ea]/90 px-2.5 py-1.5 font-sans text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#8f7a38]">Até R$ 100</div><Link to={`/go/${product.id}`} className="absolute bottom-4 right-4 grid h-11 w-11 translate-y-3 place-items-center rounded-full bg-[#2b211d] text-[#d4af37] opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100" aria-label={`Ver ${title}`}><ArrowUpRight size={18} /></Link></div><div className="border-b border-[#2b211d]/12 py-5"><div className="flex items-start justify-between gap-4"><div><p className="font-sans text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#8f7a38]">{product.category}</p><h3 className="mt-2 font-serif text-2xl leading-none">{title}</h3></div><p className="shrink-0 font-sans text-sm font-bold">R$ {Number(product.price).toFixed(2).replace('.', ',')}</p></div><div className="mt-4 flex items-center justify-between font-sans text-xs text-[#77675d]"><span>{product.brand || 'Seleção B-100'}</span>{product.rating ? <span>★ {Number(product.rating).toFixed(1)}</span> : <span>Curado</span>}</div></div></article>; }
+function EmptyCatalog() { return <div className="grid gap-5 pt-12 lg:grid-cols-[1.2fr_0.8fr]"><div className="border border-[#2b211d]/10 bg-[#fffdf9] p-8 sm:p-12"><p className="font-sans text-[0.68rem] font-bold uppercase tracking-[0.24em] text-[#8f7a38]">A seleção está a ser preparada</p><h3 className="mt-4 max-w-lg font-serif text-4xl leading-tight sm:text-5xl">Ainda não há produtos publicados nesta combinação.</h3><p className="mt-5 max-w-md font-sans text-sm leading-6 text-[#77675d]">Estamos a compor esta página com o mesmo cuidado que usamos em cada recomendação. Volte em breve para conhecer os próximos favoritos.</p><a href="#criterio" className="mt-7 inline-flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-[#2b211d] underline decoration-[#d4af37] underline-offset-8">Ler o critério <ChevronRight size={15} /></a></div><img src="/manus-storage/b100-tools_774685f6.jpg" alt="Ferramentas de beleza selecionadas" className="hidden h-full min-h-80 w-full object-cover lg:block" /></div>; }
